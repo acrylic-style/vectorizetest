@@ -8,6 +8,7 @@ import type {
 
 import { CloudflareVectorizeStore } from "langchain/vectorstores/cloudflare_vectorize";
 import { CloudflareWorkersAIEmbeddings } from "langchain/embeddings/cloudflare_workersai";
+import { OpenAIEmbeddings } from "langchain/embeddings/openai";
 import { CheerioWebBaseLoader } from 'langchain/document_loaders/web/cheerio'
 import { CloudflareWorkersAI } from 'langchain/llms/cloudflare_workersai'
 import { OpenAI } from 'langchain/llms/openai'
@@ -28,15 +29,19 @@ export interface Env {
 export default {
   async fetch(request: Request, env: Env) {
     const { pathname, searchParams } = new URL(request.url);
-    const embeddings = new CloudflareWorkersAIEmbeddings({
-      binding: env.AI,
-      modelName: "@cf/baai/bge-large-en-v1.5",
-    });
+    const embeddings = new OpenAIEmbeddings({
+      openAIApiKey: env.OPENAI_API_KEY,
+      modelName: 'text-embedding-ada-002',
+    })
+    // const embeddings = new CloudflareWorkersAIEmbeddings({
+    //   binding: env.AI,
+    //   modelName: "@cf/baai/bge-large-en-v1.5",
+    // });
     const store = new CloudflareVectorizeStore(embeddings, {
       index: env.VECTORIZE_INDEX,
     });
     const textSplitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 500,
+      chunkSize: 450,
       chunkOverlap: 100,
     })
     if (pathname === "/") {
@@ -46,10 +51,10 @@ export default {
     } else if (pathname === '/ask') {
       try {
       const query = searchParams.get('query')!
-      const results = await store.similaritySearch(query, 5)
+      const results = await store.similaritySearch(query, 12)
       console.log(results.map(d => d.pageContent))
       //const chain = loadQAStuffChain(new CloudflareWorkersAI({ model: '@cf/baai/bge-small-en-v1.5' }))
-      const chain = loadQAStuffChain(new OpenAI({ openAIApiKey: env.OPENAI_API_KEY }))
+      const chain = loadQAStuffChain(new OpenAI({ openAIApiKey: env.OPENAI_API_KEY, modelName: 'gpt-4' }))
       return Response.json(await chain.call({
         input_documents: results,
         question: query,
