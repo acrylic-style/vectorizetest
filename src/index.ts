@@ -62,17 +62,10 @@ export default {
         d.metadata.loc = JSON.stringify(d.metadata.loc)
       })
       console.log(`Inserting ${splitted.length} entries`)
-      let i = 0
-      // for (const doc of splitted) {
-      //   console.log(`Processing ${++i} of ${splitted.length}`)
-      //   console.log(JSON.stringify(doc, undefined, 2))
-      //   await store.addDocuments([doc])
-      // }
       await store.addDocuments(splitted)
       return Response.json({ success: true })
     } else if (pathname === "/load") {
       const article = searchParams.get('article') || 'Cloudflare'
-      // Upsertion by id is supported
       try {
         const url = searchParams.get('url') || ('https://en.wikipedia.org/wiki/' + encodeURI(article))
         console.log('Loading ' + url)
@@ -87,23 +80,6 @@ export default {
         console.error(e.stack || e)
         throw e
       }
-      // await store.addDocuments(
-      //   [
-      //     {
-      //       pageContent: "hello",
-      //       metadata: {},
-      //     },
-      //     {
-      //       pageContent: "world",
-      //       metadata: {},
-      //     },
-      //     {
-      //       pageContent: "hi",
-      //       metadata: {},
-      //     },
-      //   ],
-      //   { ids: ["id1", "id2", "id3"] }
-      // );
 
       return Response.json({ success: true });
     } else if (pathname === "/clear") {
