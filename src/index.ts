@@ -54,7 +54,7 @@ export default {
       const results = await store.similaritySearch(query, 12)
       console.log(results.map(d => d.pageContent))
       //const chain = loadQAStuffChain(new CloudflareWorkersAI({ model: '@cf/baai/bge-small-en-v1.5' }))
-      const chain = loadQAStuffChain(new OpenAI({ openAIApiKey: env.OPENAI_API_KEY, modelName: 'gpt-4' }))
+      const chain = loadQAStuffChain(new OpenAI({ openAIApiKey: env.OPENAI_API_KEY, modelName: 'gpt-3.5-turbo' }))
       return Response.json(await chain.call({
         input_documents: results,
         question: query,
