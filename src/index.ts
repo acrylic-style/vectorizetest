@@ -20,9 +20,12 @@ import {
 import { Ai } from '@cloudflare/ai';
 import { RecursiveCharacterTextSplitter } from 'langchain/text_splitter';
 
+export const splitArray = <T>(arr: Array<T>, maxLen: number): Array<Array<T>> => Array.from({length: Math.ceil(arr.length / maxLen)}, (_v, i) => arr.slice(i * maxLen, (i + 1) * maxLen));
+
 export interface Env {
   OPENAI_API_KEY: string;
   VECTORIZE_INDEX: VectorizeIndex;
+  KV: KVNamespace;
   AI: Fetcher;
 }
 
@@ -70,7 +73,9 @@ export default {
         d.metadata.loc = JSON.stringify(d.metadata.loc)
       })
       console.log(`Inserting ${splitted.length} entries`)
-      await store.addDocuments(splitted)
+      const ids = await store.addDocuments(splitted)
+      const storedIds: string[] = await env.KV.get('vectorize-ids', 'json') || []
+      await env.KV.put('vectorize-ids', JSON.stringify([...storedIds, ...ids]))
       return Response.json({ success: true })
     } else if (pathname === "/load") {
       const article = searchParams.get('article') || 'Cloudflare'
@@ -83,18 +88,24 @@ export default {
           d.metadata.loc = JSON.stringify(d.metadata.loc)
         })
         console.log('Adding ' + docs.length + ' entries')
-        await store.addDocuments(docs)
+        const ids = await store.addDocuments(docs)
+        const storedIds: string[] = await env.KV.get('vectorize-ids', 'json') || []
+        await env.KV.put('vectorize-ids', JSON.stringify([...storedIds, ...ids]))
       } catch (e: any) {
         console.error(e.stack || e)
         throw e
       }
 
-      return Response.json({ success: true });
+      return Response.json({ success: true })
     } else if (pathname === "/clear") {
-      await store.delete({ ids: ["id1", "id2", "id3"] });
-      return Response.json({ success: true });
+      const ids: string[] = await env.KV.get('vectorize-ids', 'json') || []
+      for (const array of splitArray(ids, 20)) {
+        await store.delete({ ids: array })
+      }
+      await env.KV.delete('vectorize-ids')
+      return Response.json({ success: true })
     }
 
-    return Response.json({ error: "Not Found" }, { status: 404 });
+    return Response.json({ error: "Not Found" }, { status: 404 })
   },
-};
+}
